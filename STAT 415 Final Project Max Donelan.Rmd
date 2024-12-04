@@ -2,7 +2,7 @@
 title: "STAT 415 - Final Project"
 author: "Max Donelan"
 date: "2024-12-04"
-output: word_document
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
