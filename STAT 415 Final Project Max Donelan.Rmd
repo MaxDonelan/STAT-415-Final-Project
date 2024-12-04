@@ -1,0 +1,216 @@
+---
+title: "STAT 415 - Final Project"
+author: "Max Donelan"
+date: "2024-12-04"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Part 1
+
+## Exercise 1
+
+```{r}
+myfun <- function(y, m){
+  x <- sample(y, m)
+  s <- NULL
+  d <- NULL
+  
+  s <- x[x <= 100 & (x %% 4) == 0]
+  d <- x[x > 120 & (x %% 3) == 0]
+
+  l <- list(s, d, mean(s), var(s), mean(d), var(d))
+  return(l)
+}
+
+myfun(1:300, 40)
+```
+
+## Exercise 2
+
+```{r}
+x <- seq(-5, 40, length=500)         # x values
+dist.x <- dnorm(x, 5, 10)    # Returns CDF of normal distribution with mean 10 and sd 10.
+
+degf <- c(3, 10, 20)             # Set up the three degree of freedoms
+colors <- c('green', 'red', 'blue', "black")  # Set up the four colors 
+labels <- c("df=3", "df=10", "df=20",  "normal")       # Label the plots
+
+plot(x, dist.x, type="scatter", lty=2, lwd=2, xlab= "x value",
+  ylab= "Density", main="Comparison of Normal and Chi-square Distributions")         # Plot normal density curve
+
+for (i in 1:length(degf)){
+  lines(x, dchisq(x,degf[i]), lty=1, lwd=2, col=colors[i]) # Plot chi-square distribution curves
+                                   # dchisq() returns CDF of chi-square distribution
+                                   # col= set up colors for the chi-square distributions
+}
+
+legend("topright", inset=0.01, title="Distributions",       # Set up the title of legend
+  labels, lwd=2, lty=c(1, 1, 1, 2), col=colors)  # Set up line types appearing in the legend
+```
+
+# Part 2
+
+## Exercise 3
+
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(ggridges)
+
+national_weather <- rbind(read_csv("daily_42101_2022.csv"), read_csv("daily_42101_2023.csv"),
+                          read_csv("daily_42401_2022.csv"), read_csv("daily_42401_2023.csv"),
+                          read_csv("daily_44201_2022.csv"), read_csv("daily_44201_2023.csv"),
+                          read_csv("daily_TEMP_2022.csv"), read_csv("daily_TEMP_2023.csv"),
+                          read_csv("daily_WIND_2022.csv"), read_csv("daily_WIND_2023.csv"))
+
+weather <- national_weather %>% filter(`City Name` == "Sioux Falls") %>% 
+  arrange(`Date Local`) %>%
+  mutate(Year = as.numeric(format(`Date Local`, "%Y")),
+         Month = factor(format(`Date Local`, "%B"), levels = month.name)) %>%
+  select(`Date Local`, `Parameter Name`, `Arithmetic Mean`, `1st Max Value`, Month, Year)
+
+# For the Shiny App
+write.csv(weather, file = "Final_Project/weather.csv")
+
+weather %>% group_by(Year) %>% slice_head(n = 5)
+
+weather_OZONE_2022 <- weather %>% filter(`Parameter Name` == "Ozone" & Year == 2022)
+weather_OZONE_2023 <- weather %>% filter(`Parameter Name` == "Ozone" & Year == 2023)
+weather_CO_2022 <- weather %>% filter(`Parameter Name` == "Carbon monoxide" & Year == 2022)
+weather_CO_2023 <- weather %>% filter(`Parameter Name` == "Carbon monoxide" & Year == 2023)
+weather_SO2_2022 <- weather %>% filter(`Parameter Name` == "Sulfur dioxide" & Year == 2022)
+weather_SO2_2023 <- weather %>% filter(`Parameter Name` == "Sulfur dioxide" & Year == 2023)
+weather_TEMP_2022 <- weather %>% filter(`Parameter Name` == "Outdoor Temperature" & Year == 2022)
+weather_TEMP_2023 <- weather %>% filter(`Parameter Name` == "Outdoor Temperature" & Year == 2023)
+weather_WIND_DIRECT_2022 <- weather %>% filter(`Parameter Name` == "Wind Direction - Resultant" & Year == 2022)
+weather_WIND_DIRECT_2023 <- weather %>% filter(`Parameter Name` == "Wind Direction - Resultant" & Year == 2023)
+weather_WIND_SPEED_2022 <- weather %>% filter(`Parameter Name` == "Wind Speed - Resultant" & Year == 2022)
+weather_WIND_SPEED_2023 <- weather %>% filter(`Parameter Name` == "Wind Speed - Resultant" & Year == 2023)
+
+create_weather_ridgeline <- function(variable) {
+  ggplot(variable, aes(x = `Arithmetic Mean`, y = Month, fill = after_stat(x))) +
+    geom_density_ridges_gradient(scale = 1, rel_min_height = 0.01) +
+    scale_fill_viridis_c(name = "Mean", option = "C") +
+    labs(title = paste("Ridgeline Plot for", variable$`Parameter Name`[[1]], "in", variable$Year[[1]])) + 
+    theme(plot.title = element_text(hjust = 0.5))
+}
+
+create_weather_ridgeline(weather_CO_2022)
+create_weather_ridgeline(weather_CO_2023)
+create_weather_ridgeline(weather_OZONE_2022)
+create_weather_ridgeline(weather_OZONE_2023)
+create_weather_ridgeline(weather_SO2_2022)
+create_weather_ridgeline(weather_SO2_2023)
+create_weather_ridgeline(weather_TEMP_2022)
+create_weather_ridgeline(weather_TEMP_2023)
+create_weather_ridgeline(weather_WIND_DIRECT_2022)
+create_weather_ridgeline(weather_WIND_DIRECT_2023)
+create_weather_ridgeline(weather_WIND_SPEED_2022)
+create_weather_ridgeline(weather_WIND_SPEED_2023)
+```
+
+## Exercise 4
+
+```{r}
+create_weather_boxplot <- function(x) {
+  ggplot(x) + aes(x = Month, y = `Arithmetic Mean`, fill = Month) + 
+              geom_boxplot() +
+              labs(title = paste(x$`Parameter Name`[[1]], "Levels for", x$Year[[1]])) + 
+              ylab(x$`Parameter Name`[[1]]) +
+              theme(plot.title = element_text(hjust = 0.5),
+                    axis.text.x = element_text(angle = 60, hjust = 1))
+}
+
+create_weather_boxplot(weather_OZONE_2022)
+create_weather_boxplot(weather_OZONE_2023)
+create_weather_boxplot(weather_CO_2022)
+create_weather_boxplot(weather_CO_2023)
+create_weather_boxplot(weather_SO2_2022)
+create_weather_boxplot(weather_SO2_2023)
+```
+
+## Exercise 5
+
+```{r}
+library(plotly)
+
+ggplotly(create_weather_boxplot(weather_TEMP_2022))
+ggplotly(create_weather_boxplot(weather_TEMP_2023))
+ggplotly(create_weather_boxplot(weather_WIND_DIRECT_2022))
+ggplotly(create_weather_boxplot(weather_WIND_DIRECT_2023))
+ggplotly(create_weather_boxplot(weather_WIND_SPEED_2022))
+ggplotly(create_weather_boxplot(weather_WIND_SPEED_2023))
+```
+## Exercise 6
+Sioux Falls temperature data was very sparce, only covering 1/1/22-3/31/22 and 10/18/22-3/31/23, so there are no days where the temperature got above 90 in this range.
+```{r}
+frost_days <- weather %>% group_by(Year) %>% filter(`Parameter Name` == "Outdoor Temperature" & `Arithmetic Mean` < 32) %>% nrow()
+cat(paste("Number of Days With An Average Temperature Below Freezing:", frost_days))
+
+# Sioux Falls temperature data was very sparce, only covering 1/1/22-3/31/22 and
+# 10/18/22-3/31/23, so there are no days where the temperature got above 90 in this range.
+hot_days <- weather %>% group_by(Year) %>% filter(`Parameter Name` == "Outdoor Temperature" & `1st Max Value` > 90) %>% nrow()
+cat("\nNumber of Days With A Max Temperature Above 90F:", hot_days)
+```
+
+## Exercise 7
+
+```{r}
+Summer <- subset(weather, Month %in% c("June", "July", "August"))
+Winter <- subset(weather, Month %in% c("December", "January", "February"))
+head(Summer)
+head(Winter)
+dim(Summer)
+dim(Winter)
+```
+
+## Exercise 8
+Note: There is no summer temperature data in the data set for Sioux Falls
+
+Another note: I'm using the number of observations instead of the number of days just in case there are days missing corresponding data, which would throw off the mean calculation
+```{r}
+# Note: There is no summer temperature data in the data set for Sioux Falls
+# Another note: I'm using the number of observations instead of the number of days just in
+# case there are days missing corresponding data, which would throw off the mean calculation
+cat("Mean Summer 2022 Temperature:", 
+    mean(subset(Summer, `Parameter Name` == "Outdoor Temperature" & Year == 2022)$`Arithmetic Mean`), "\n")
+cat("Mean Summer 2023 Temperature:", 
+    mean(subset(Summer, `Parameter Name` == "Outdoor Temperature" & Year == 2023)$`Arithmetic Mean`), "\n")
+cat("Mean Winter 2022 Temperature:", 
+    mean(subset(Winter, `Parameter Name` == "Outdoor Temperature" & Year == 2022)$`Arithmetic Mean`), "\n")
+cat("Mean Winter 2023 Temperature:", 
+    mean(subset(Winter, `Parameter Name` == "Outdoor Temperature" & Year == 2023)$`Arithmetic Mean`), "\n")
+cat("Mean Summer 2022 Wind Speed:", 
+    mean(subset(Summer, `Parameter Name` == "Wind Speed - Resultant" & Year == 2022)$`Arithmetic Mean`), "\n")
+cat("Mean Summer 2023 Wind Speed:", 
+    mean(subset(Summer, `Parameter Name` == "Wind Speed - Resultant" & Year == 2023)$`Arithmetic Mean`), "\n")
+cat("Mean Winter 2022 Wind Speed:", 
+    mean(subset(Winter, `Parameter Name` == "Wind Speed - Resultant" & Year == 2022)$`Arithmetic Mean`), "\n")
+cat("Mean Winter 2023 Wind Speed:", 
+    mean(subset(Winter, `Parameter Name` == "Wind Speed - Resultant" & Year == 2023)$`Arithmetic Mean`), "\n")
+```
+
+## Exercise 9
+Since there is no temperature data for the summers. I'm using winter data instead, but I've included the code for the summer too.
+
+```{r}
+# Since there is no temperature data for the summers, I'm using winter data instead, but I've
+# included the code for the summer too.
+Winter %>% filter(`Parameter Name` == "Outdoor Temperature" & Year == 2022) %>% mutate(Difference = `Arithmetic Mean` - mean(`Arithmetic Mean`)) %>% arrange(Difference) %>% head(n = 10)
+Winter %>% filter(`Parameter Name` == "Outdoor Temperature" & Year == 2023) %>% mutate(Difference = `Arithmetic Mean` - mean(`Arithmetic Mean`)) %>% arrange(Difference) %>% head(n = 10)
+
+Summer %>% filter(`Parameter Name` == "Outdoor Temperature" & Year == 2022) %>% mutate(Difference = `Arithmetic Mean` - mean(`Arithmetic Mean`)) %>% arrange(Difference) %>% head(n = 10)
+Summer %>% filter(`Parameter Name` == "Outdoor Temperature" & Year == 2023) %>% mutate(Difference = `Arithmetic Mean` - mean(`Arithmetic Mean`)) %>% arrange(Difference) %>% head(n = 10)
+```
+
+# Part 3
+If you run the Shiny App through the individual file, you'll likely need to run this code first to get the weather.csv file for the Shiny App to use. It would probably be easier to run the Shiny App through the following link and use the file only to look at the source code running the app.
+
+Shiny App Link: http://max-donelan.shinyapps.io/Final_Project
+
+
